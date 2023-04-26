@@ -5,12 +5,21 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.Category;
+import com.itheima.reggie.entity.Dish;
+import com.itheima.reggie.entity.DishDto;
+import com.itheima.reggie.entity.DishFlavor;
 import com.itheima.reggie.service.CategoryService;
+import com.itheima.reggie.service.DishFlavorService;
+import com.itheima.reggie.service.DishService;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -18,6 +27,10 @@ import java.util.List;
 public class CategoryController {
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private DishService dishService;
+    @Autowired
+    private DishFlavorService dishFlavorService;
 
     @PostMapping
     public R<String> save(@RequestBody Category category){
@@ -47,11 +60,12 @@ public class CategoryController {
     //请求网址: http://localhost:8080/category/list?type=1
     //请求方法: GET
     @GetMapping("/list")
-    public R<List<Category>> list(int type){
-        QueryWrapper<Category> wrapper = new QueryWrapper();
-        wrapper.eq("type",type).orderByDesc("update_time");
-        List<Category> list = categoryService.list(wrapper);
-        return R.success(list);
+    public R<List<Category>> list(Category category) {
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(category.getType() != null,Category::getType,category.getType());
+        queryWrapper.orderByDesc(Category::getUpdateTime);
+        List<Category> categoryList = categoryService.list(queryWrapper);
+        return R.success(categoryList);
     }
 
 }

@@ -60,8 +60,8 @@ public class DishController {
             BeanUtils.copyProperties(item, dishDto);
             Long categoryId = item.getCategoryId();
             Category category = categoryService.getById(categoryId);
-            if (category!=null){
                 //设置实体类DishDto的categoryName属性值
+            if (category!=null){
                 String categoryName = category.getName();
                 dishDto.setCategoryName(categoryName);
             }
@@ -72,7 +72,7 @@ public class DishController {
         DishDtoPage.setRecords(list);
         //因为上面处理的数据没有分类的id,这样直接返回R.success(dishPage)虽然不会报错，但是前端展示的时候这个菜品分类这一数据就为空
         //所以进行了上面的一系列操作
-        return R.success(Dashpage);
+        return R.success(DishDtoPage);
     }
     //请求网址: http://localhost:8080/dish/1413384757047271425
     //请求方法: GET
@@ -119,11 +119,44 @@ public class DishController {
     //    请求网址: http://localhost:8080/dish/list?categoryId=1413341197421846529
     //    请求方法: GET
     @GetMapping("/list")
-    public R<List<Dish>> list(Long categoryId){
+    public R<List<DishDto>> list(Dish dish) {
+        //这里可以传categoryId,但是为了代码通用性更强,这里直接使用dish类来接受（因为dish里面是有categoryId的）,以后传dish的其他属性这里也可以使用
+        //构造查询条件
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Dish::getCategoryId,categoryId);
-        List<Dish> list = dishService.list(queryWrapper);
-        return R.success(list);
+        queryWrapper.eq(dish.getCategoryId() != null, Dish::getCategoryId, dish.getCategoryId());
+        //添加条件，查询状态为1（起售状态）的菜品
+        queryWrapper.eq(Dish::getStatus, 1);
 
+        //添加排序条件
+        queryWrapper.orderByAsc(Dish::getSort).orderByDesc(Dish::getUpdateTime);
+        List<Dish> list = dishService.list(queryWrapper);
+
+        //进行集合的泛型转化
+        List<DishDto> dishDtoList = list.stream().map((item) -> {
+            DishDto dishDto = new DishDto();
+            //为一个新的对象赋值，一定要考虑你为它赋过几个值，否则你自己都不知道就返回了null的数据
+            //为dishDto对象的基本属性拷贝
+            BeanUtils.copyProperties(item, dishDto);
+            Long categoryId = item.getCategoryId();
+            Category category = categoryService.getById(categoryId);
+            if (category != null) {
+                String categoryName = category.getName();
+                dishDto.setCategoryName(categoryName);
+            }
+            //为dishdto赋值flavors属性
+            //当前菜品的id
+            Long dishId = item.getId();
+            //创建条件查询对象
+            LambdaQueryWrapper<DishFlavor> lambdaQueryWrapper = new LambdaQueryWrapper();
+            lambdaQueryWrapper.eq(DishFlavor::getDishId, dishId);
+            //select * from dish_flavor where dish_id = ?
+            //这里之所以使用list来条件查询那是因为同一个dish_id 可以查出不同的口味出来,就是查询的结果不止一个
+            List<DishFlavor> dishFlavorList = dishFlavorService.list(lambdaQueryWrapper);
+            dishDto.setFlavors(dishFlavorList);
+
+            return dishDto;
+        }).collect(Collectors.toList());
+
+        return R.success(dishDtoList);
     }
 }

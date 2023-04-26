@@ -10,14 +10,11 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.servlet.annotation.WebFilter;
 
 //检查用户是否登录
 @WebFilter(filterName = "loginCheckFilter",urlPatterns = "/*")
 @Slf4j
-public class oginCheckFilter implements Filter {
+public class LoginCheckFilter implements Filter{
     //路径匹配器，支持通配符
     public static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
@@ -39,7 +36,7 @@ public class oginCheckFilter implements Filter {
                 "/front/**",
                 "/common/**",
                 "/user/sendMsg",
-                "/user/login"
+                "/user/login",
         };
 
         //2、判断本次请求是否需要处理
@@ -53,10 +50,10 @@ public class oginCheckFilter implements Filter {
         }
 
         //4-1、判断登录状态，如果已登录，则直接放行
-        if(request.getSession().getAttribute("employee") != null){
-            log.info("用户已登录，用户id为：{}",request.getSession().getAttribute("employee"));
+        if(request.getSession().getAttribute("emp") != null){
+            log.info("用户已登录，用户id为：{}",request.getSession().getAttribute("emp"));
 
-            Long empId = (Long) request.getSession().getAttribute("employee");
+            Long empId = (Long) request.getSession().getAttribute("emp");
             BaseContext.setCurrentId(empId);
 
             filterChain.doFilter(request,response);
@@ -96,4 +93,4 @@ public class oginCheckFilter implements Filter {
         }
         return false;
     }
-    }
+}

@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -79,22 +80,58 @@ public class SetmealController {
     //请求网址: http://localhost:8080/setmeal
     //请求方法: PUT
     @PutMapping
-    public R<String> Put(@RequestBody SetmealDto setmealDto){
-        List<SetmealDish> setmealDishes = setmealDto.getSetmealDishes();
-        Long id = setmealDto.getId();
-        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SetmealDish::getSetmealId,id);
-        setmealDishes.remove(queryWrapper);
-        for (SetmealDish setmealDish : setmealDishes) {
-            setmealDish.setSetmealId(id);
+    public R<String> Put(@RequestBody SetmealDto setmealDto) {
+        if (setmealDto == null) {
+            return R.error("请求异常");
         }
 
+        if (setmealDto.getSetmealDishes() == null) {
+            return R.error("套餐没有菜品,请添加套餐");
+        }
+        List<SetmealDish> setmealDishes = setmealDto.getSetmealDishes();
+        Long setmealId = setmealDto.getId();
+
+        LambdaQueryWrapper<SetmealDish> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SetmealDish::getSetmealId, setmealId);
+        setmealDishService.remove(queryWrapper);
+
+        //为setmeal_dish表填充相关的属性
+        for (SetmealDish setmealDish : setmealDishes) {
+            setmealDish.setSetmealId(setmealId);
+        }
         //批量把setmealDish保存到setmeal_dish表
         setmealDishService.saveBatch(setmealDishes);
         setmealService.updateById(setmealDto);
-        return R.success("修改成功！");
 
-
-
+        return R.success("套餐修改成功");
+    }
+        //请求网址: http://localhost:8080/setmeal/status/0?ids=1648878918616870913
+    //请求方法: POST
+    @PostMapping("/status/{status}")
+    public R<String> Updadeids(@PathVariable int status,@RequestParam("ids") List<Long> ids){
+        LambdaUpdateWrapper<Setmeal> UpdateWrapper = new LambdaUpdateWrapper();
+        UpdateWrapper.set(Setmeal::getStatus,status).in(Setmeal::getId,ids);
+        setmealService.update(UpdateWrapper);
+        return R.success("修改成功！！");
+    }
+    //请求网址: http://localhost:8080/setmeal?ids=1648878918616870913,1415580119015145474
+    //请求方法: DELETE
+    @DeleteMapping
+    public R<String> delect(@RequestParam("ids") List<Long> ids){
+        LambdaQueryWrapper<Setmeal> wrapper = new LambdaQueryWrapper();
+        wrapper.in(Setmeal::getId,ids);
+        setmealService.remove(wrapper);
+        return R.success("删除成功");
+    }
+    //请求网址: http://localhost:8080/setmeal/list?categoryId=1648874631539032066&status=1
+    //请求方法: GET
+    @GetMapping("/list")
+    public R<List<Setmeal>> list(Setmeal setmeal){
+        LambdaQueryWrapper<Setmeal> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(setmeal.getCategoryId()!=null,Setmeal::getCategoryId,setmeal.getCategoryId());
+        queryWrapper.eq(setmeal.getStatus()!=null,Setmeal::getStatus,setmeal.getStatus());
+        queryWrapper.orderByDesc(Setmeal::getUpdateTime);
+        List<Setmeal> list = setmealService.list(queryWrapper);
+        return R.success(list);
     }
 }

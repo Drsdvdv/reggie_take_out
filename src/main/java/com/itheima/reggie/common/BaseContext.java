@@ -1,10 +1,12 @@
 package com.itheima.reggie.common;
 
+
+
 public class BaseContext {
     //用来存储用户是id
-    private static ThreadLocal<Long> threadLocal=new ThreadLocal<>();
+    private static ThreadLocal<Long> threadLocal = new ThreadLocal<>();
     //设置值
-    public static void setCurrentId(long id){
+    public static void setCurrentId(Long id){
         threadLocal.set(id);
     }
     /**

@@ -5,6 +5,9 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+  redis:
+    host: 127.0.0.1
+    port: 6379
   application:
     #应用的名称，可选
     name: reggie_take_out
