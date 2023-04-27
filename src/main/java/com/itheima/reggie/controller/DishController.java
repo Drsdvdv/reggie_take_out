@@ -1,10 +1,14 @@
 package com.itheima.reggie.controller;
 
+import com.alibaba.druid.support.json.JSONUtils;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.*;
 import com.itheima.reggie.service.CategoryService;
@@ -16,6 +20,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,6 +37,8 @@ import java.util.stream.Collectors;
 public class DishController {
 
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
 
     @Autowired
@@ -48,6 +55,10 @@ public class DishController {
     public R<Page> page(int page,int pageSize,String name){
         Page<Dish> Dashpage = new Page(page,pageSize);
         Page<DishDto> DishDtoPage = new Page<>(page,pageSize);
+        String dishDtoPage = stringRedisTemplate.opsForValue().get("DishDtoPage");
+        if (dishDtoPage!=null){
+            return R.success(DishDtoPage);
+        }
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper();
         queryWrapper.like(StringUtils.isNotEmpty(name),Dish::getName,name);
         queryWrapper.orderByDesc(Dish::getUpdateTime);
@@ -72,6 +83,7 @@ public class DishController {
         DishDtoPage.setRecords(list);
         //因为上面处理的数据没有分类的id,这样直接返回R.success(dishPage)虽然不会报错，但是前端展示的时候这个菜品分类这一数据就为空
         //所以进行了上面的一系列操作
+
         return R.success(DishDtoPage);
     }
     //请求网址: http://localhost:8080/dish/1413384757047271425
@@ -153,10 +165,8 @@ public class DishController {
             //这里之所以使用list来条件查询那是因为同一个dish_id 可以查出不同的口味出来,就是查询的结果不止一个
             List<DishFlavor> dishFlavorList = dishFlavorService.list(lambdaQueryWrapper);
             dishDto.setFlavors(dishFlavorList);
-
             return dishDto;
         }).collect(Collectors.toList());
-
         return R.success(dishDtoList);
     }
 }
